@@ -1,352 +1,295 @@
-/**
- * Hong Kong Home Affairs AI Assistant
- * Regular API with Login Authentication (Per Task Specification)
- */
+// Hong Kong Home Affairs AI Assistant - Main Application
 
 class HomeAffairsAI {
     constructor() {
-        this.apiUrl = CONFIG.API_URL;
-        this.email = CONFIG.API_EMAIL;
-        this.password = CONFIG.API_PASSWORD;
-        this.token = null;
-        this.conversationId = null;
+        this.apiUrl = null;
+        this.apiKey = null;
         this.isFirstMessage = true;
         this.currentEventSource = null;
 
         this.init();
     }
 
-    async init() {
-        console.log('🚀 Initializing Home Affairs AI Assistant...');
-        console.log('📍 API URL:', this.apiUrl);
-        console.log('👤 Email:', this.email);
-        
-        // Check for existing token
-        this.token = localStorage.getItem(CONFIG.STORAGE.TOKEN);
-        this.conversationId = sessionStorage.getItem(CONFIG.STORAGE.SESSION_ID);
+    init() {
+        // Check for saved settings
+        this.apiUrl = localStorage.getItem(CONFIG.API_URL_KEY);
+        this.apiKey = localStorage.getItem(CONFIG.API_KEY_STORAGE);
 
-        if (!this.token) {
-            console.log('🔐 No token found, logging in...');
-            await this.login();
+        if (this.apiUrl && this.apiKey) {
+            this.showChatInterface();
         } else {
-            console.log('✅ Token found in storage');
-        }
-
-        if (!this.conversationId) {
-            console.log('📝 Creating new session...');
-            await this.createSession();
-        } else {
-            console.log('✅ Session ID found:', this.conversationId);
+            this.showSettingsPanel();
         }
 
         this.attachEventListeners();
-        this.updateUIWithConfig();
-    }
-
-    updateUIWithConfig() {
-        document.getElementById('secureBadgeText').textContent = CONFIG.SECURE_BADGE_TEXT;
-        document.getElementById('loadingText').textContent = CONFIG.LOADING_MESSAGE;
-    }
-
-    async login() {
-        try {
-            const response = await fetch(`${this.apiUrl}${CONFIG.ENDPOINTS.LOGIN}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-tenant-subdomain': CONFIG.TENANT_SUBDOMAIN
-                },
-                body: JSON.stringify({
-                    email: this.email,
-                    password: this.password
-                })
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Login failed: ${response.status} - ${errorText}`);
-            }
-
-            const data = await response.json();
-            this.token = data.token || data.access_token;
-
-            if (!this.token) {
-                throw new Error('No token received from login');
-            }
-
-            localStorage.setItem(CONFIG.STORAGE.TOKEN, this.token);
-            console.log('✅ Login successful!');
-
-        } catch (error) {
-            console.error('❌ Login error:', error);
-            alert(`Login failed: ${error.message}\n\nPlease check your credentials in config.js`);
-            throw error;
-        }
-    }
-
-    async createSession() {
-        try {
-            const response = await fetch(`${this.apiUrl}${CONFIG.ENDPOINTS.CREATE_SESSION}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.token}`,
-                    'x-tenant-subdomain': CONFIG.TENANT_SUBDOMAIN
-                },
-                body: JSON.stringify({
-                    title: 'Home Affairs Inquiry',
-                    mode: CONFIG.API_MODE
-                })
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Session creation failed: ${response.status} - ${errorText}`);
-            }
-
-            const data = await response.json();
-            this.conversationId = data.id;
-
-            if (!this.conversationId) {
-                throw new Error('No session ID received');
-            }
-
-            sessionStorage.setItem(CONFIG.STORAGE.SESSION_ID, this.conversationId);
-            console.log('✅ Session created:', this.conversationId);
-
-        } catch (error) {
-            console.error('❌ Session creation error:', error);
-            // Try to login again if token might be invalid
-            if (error.message.includes('401')) {
-                console.log('Token might be expired, logging in again...');
-                await this.login();
-                await this.createSession();
-            } else {
-                throw error;
-            }
-        }
     }
 
     attachEventListeners() {
+        // Settings
+        const saveBtn = document.getElementById('saveSettings');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => this.saveSettings());
+        }
+
+        // Message input
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
 
-        messageInput.addEventListener('input', () => {
-            this.autoResizeTextarea(messageInput);
-            sendButton.disabled = messageInput.value.trim() === '';
-        });
+        if (messageInput) {
+            messageInput.addEventListener('input', () => {
+                this.autoResize(messageInput);
+                sendButton.disabled = messageInput.value.trim() === '';
+            });
 
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (messageInput.value.trim() !== '') {
-                    this.handleSendMessage();
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (messageInput.value.trim()) {
+                        this.sendMessage();
+                    }
                 }
-            }
-        });
+            });
+        }
 
-        sendButton.addEventListener('click', () => this.handleSendMessage());
+        if (sendButton) {
+            sendButton.addEventListener('click', () => this.sendMessage());
+        }
 
+        // Settings button
+        const settingsBtn = document.getElementById('settingsButton');
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => this.showSettingsPanel());
+        }
+
+        // Citation drawer
+        const closeDrawer = document.getElementById('closeDrawer');
+        if (closeDrawer) {
+            closeDrawer.addEventListener('click', () => {
+                document.getElementById('citationDrawer').classList.remove('open');
+            });
+        }
+
+        // Suggestion chips
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('suggestion-chip')) {
                 const query = e.target.getAttribute('data-query');
-                if (query) {
+                if (query && messageInput) {
                     messageInput.value = query;
                     sendButton.disabled = false;
-                    this.handleSendMessage();
+                    this.sendMessage();
                 }
             }
         });
-
-        document.getElementById('closeDrawer').addEventListener('click', () => {
-            document.getElementById('citationDrawer').classList.remove('open');
-        });
     }
 
-    autoResizeTextarea(textarea) {
+    autoResize(textarea) {
         textarea.style.height = 'auto';
         textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
     }
 
-    async handleSendMessage() {
-        const messageInput = document.getElementById('messageInput');
-        const userMessage = messageInput.value.trim();
+    saveSettings() {
+        const apiUrl = document.getElementById('apiUrl').value.trim();
+        const apiKey = document.getElementById('apiKey').value.trim();
+
+        if (!apiUrl || !apiKey) {
+            alert('Please enter both API URL and API Key');
+            return;
+        }
+
+        this.apiUrl = apiUrl;
+        this.apiKey = apiKey;
+
+        localStorage.setItem(CONFIG.API_URL_KEY, apiUrl);
+        localStorage.setItem(CONFIG.API_KEY_STORAGE, apiKey);
+
+        this.showChatInterface();
+    }
+
+    showSettingsPanel() {
+        document.getElementById('settingsPanel').style.display = 'flex';
+        document.getElementById('chatInterface').style.display = 'none';
+        document.getElementById('settingsButton').style.display = 'none';
+
+        // Populate fields
+        if (this.apiUrl) document.getElementById('apiUrl').value = this.apiUrl;
+        if (this.apiKey) document.getElementById('apiKey').value = this.apiKey;
+    }
+
+    showChatInterface() {
+        document.getElementById('settingsPanel').style.display = 'none';
+        document.getElementById('chatInterface').style.display = 'flex';
+        document.getElementById('settingsButton').style.display = 'flex';
+    }
+
+    async sendMessage() {
+        const input = document.getElementById('messageInput');
+        const userMessage = input.value.trim();
 
         if (!userMessage) return;
 
-        messageInput.disabled = true;
+        // Disable input
+        input.disabled = true;
         document.getElementById('sendButton').disabled = true;
 
-        messageInput.value = '';
-        messageInput.style.height = 'auto';
+        // Clear input
+        input.value = '';
+        input.style.height = 'auto';
 
-        const welcomeMessage = document.querySelector('.welcome-message');
-        if (welcomeMessage) {
-            welcomeMessage.remove();
-        }
+        // Remove welcome if present
+        const welcome = document.querySelector('.welcome-message');
+        if (welcome) welcome.remove();
 
+        // Add user message
         this.addMessage(userMessage, 'user');
-        this.showLoading(true);
 
-        try {
-            await this.sendQuery(userMessage);
-        } catch (error) {
-            console.error('❌ Error sending message:', error);
-            this.addMessage(`Sorry, an error occurred: ${error.message}`, 'assistant');
-            this.showLoading(false);
-        }
-
-        messageInput.disabled = false;
-        messageInput.focus();
-    }
-
-    async sendQuery(userMessage) {
-        // Prepend system prompt on first message
-        let finalQuery = userMessage;
+        // Prepare query with system prompt if first message
+        let finalMessage = userMessage;
         if (this.isFirstMessage) {
-            finalQuery = `${CONFIG.SYSTEM_PROMPT}\n\nUser Question: ${userMessage}`;
+            finalMessage = `${CONFIG.SYSTEM_PROMPT}\n\nUser Question: ${userMessage}`;
             this.isFirstMessage = false;
         }
 
-        const requestBody = {
-            query: finalQuery,
-            conversation_id: this.conversationId,
-            mode: CONFIG.API_MODE,
-            enabled_tools: CONFIG.ENABLED_TOOLS
-        };
-
-        if (CONFIG.DEBUG_MODE) {
-            console.log('📤 Sending query:', requestBody);
-        }
+        // Show loading
+        this.showLoading(true);
 
         try {
-            const response = await fetch(`${this.apiUrl}${CONFIG.ENDPOINTS.QUERY_STREAM}`, {
+            await this.queryAgent(finalMessage);
+        } catch (error) {
+            console.error('Error:', error);
+            this.addMessage('Sorry, an error occurred. Please check your API key and try again.', 'assistant');
+            this.showLoading(false);
+        }
+
+        // Re-enable input
+        input.disabled = false;
+        input.focus();
+    }
+
+    async queryAgent(message) {
+        try {
+            const response = await fetch(`${this.apiUrl}/api/v1/developer/agent/query/stream`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.token}`,
-                    'x-tenant-subdomain': CONFIG.TENANT_SUBDOMAIN
+                    'Authorization': `Bearer ${this.apiKey}`,
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(requestBody)
+                body: JSON.stringify({
+                    message: message,
+                    system_prompt: CONFIG.SYSTEM_PROMPT,
+                    tool_groups: ['web']
+                })
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Query failed: ${response.status} - ${errorText}`);
+                throw new Error(`API error: ${response.status}`);
             }
 
-            const data = await response.json();
-            const streamUrl = data.stream_url || `${CONFIG.ENDPOINTS.QUERY_STREAM.replace('/stream', '')}/${data.query_id}/stream`;
-
-            console.log('🔌 Connecting to stream:', streamUrl);
-            this.connectToEventSource(streamUrl);
+            // Handle SSE stream
+            this.handleStream(response.body);
 
         } catch (error) {
-            console.error('❌ Query error:', error);
+            console.error('Query error:', error);
             throw error;
         }
     }
 
-    connectToEventSource(streamPath) {
-        if (this.currentEventSource) {
-            this.currentEventSource.close();
+    async handleStream(stream) {
+        const reader = stream.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let assistantElement = null;
+        let assistantContent = '';
+
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6).trim();
+                        if (data === '[DONE]') {
+                            this.showLoading(false);
+                            continue;
+                        }
+
+                        try {
+                            const event = JSON.parse(data);
+                            
+                            if (event.event === 'start') {
+                                console.log('Stream started');
+                            }
+                            else if (event.event === 'thinking') {
+                                // Loading indicator already shown
+                            }
+                            else if (event.event === 'answer_chunk') {
+                                this.showLoading(false);
+                                const chunk = event.data?.chunk || '';
+                                
+                                if (!assistantElement) {
+                                    assistantElement = this.createMessageElement('', 'assistant');
+                                    assistantContent = '';
+                                }
+                                
+                                assistantContent += chunk;
+                                this.updateMessage(assistantElement, assistantContent);
+                            }
+                            else if (event.event === 'sources') {
+                                const sources = event.data?.sources || [];
+                                this.updateCitations(sources);
+                            }
+                            else if (event.event === 'done') {
+                                this.showLoading(false);
+                            }
+                            else if (event.event === 'error') {
+                                console.error('Stream error:', event.data);
+                                this.showLoading(false);
+                            }
+                        } catch (e) {
+                            // Skip invalid JSON
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Stream reading error:', error);
+            this.showLoading(false);
         }
-
-        const fullUrl = streamPath.startsWith('http') ? streamPath : `${this.apiUrl}${streamPath}`;
-        
-        // Add authorization as query parameter for EventSource
-        const url = new URL(fullUrl);
-        url.searchParams.set('token', this.token);
-
-        const eventSource = new EventSource(url.toString());
-        this.currentEventSource = eventSource;
-
-        let assistantMessageElement = null;
-        let assistantMessageContent = '';
-
-        eventSource.addEventListener('start', (event) => {
-            console.log('📨 Stream started');
-            if (CONFIG.DEBUG_MODE) console.log('Start data:', event.data);
-        });
-
-        eventSource.addEventListener('thinking', (event) => {
-            console.log('🤔 AI thinking...');
-            // Loading indicator already shown
-        });
-
-        eventSource.addEventListener('answer_chunk', (event) => {
-            this.showLoading(false);
-
-            const data = JSON.parse(event.data);
-            const chunk = data.chunk || '';
-
-            if (!assistantMessageElement) {
-                assistantMessageElement = this.createMessageElement('', 'assistant');
-                assistantMessageContent = '';
-            }
-
-            assistantMessageContent += chunk;
-            this.updateMessageContent(assistantMessageElement, assistantMessageContent);
-        });
-
-        eventSource.addEventListener('sources', (event) => {
-            const data = JSON.parse(event.data);
-            console.log('📚 Sources received:', data.sources);
-            if (data.sources) {
-                this.updateCitations(data.sources);
-            }
-        });
-
-        eventSource.addEventListener('done', (event) => {
-            console.log('✅ Stream complete');
-            this.showLoading(false);
-            eventSource.close();
-            this.currentEventSource = null;
-        });
-
-        eventSource.onerror = (error) => {
-            console.error('❌ Stream error:', error);
-            this.showLoading(false);
-
-            if (!assistantMessageElement) {
-                this.addMessage('Sorry, an error occurred while processing your request.', 'assistant');
-            }
-
-            eventSource.close();
-            this.currentEventSource = null;
-        };
     }
 
     addMessage(content, role) {
-        return this.createMessageElement(content, role);
+        const element = this.createMessageElement(content, role);
+        return element;
     }
 
     createMessageElement(content, role) {
-        const chatMessages = document.getElementById('chatMessages');
+        const container = document.getElementById('chatMessages');
         const messageDiv = document.createElement('div');
         messageDiv.className = `message message-${role}`;
 
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
-        contentDiv.innerHTML = this.formatMessage(content);
+        contentDiv.innerHTML = this.formatContent(content);
 
         messageDiv.appendChild(contentDiv);
-        chatMessages.appendChild(messageDiv);
-
+        container.appendChild(messageDiv);
         this.scrollToBottom();
 
         return contentDiv;
     }
 
-    updateMessageContent(element, content) {
-        element.innerHTML = this.formatMessage(content);
+    updateMessage(element, content) {
+        element.innerHTML = this.formatContent(content);
         this.scrollToBottom();
     }
 
-    formatMessage(content) {
-        if (!content) return '';
-        
-        let formatted = content
+    formatContent(text) {
+        // Simple markdown-like formatting
+        let formatted = text
             .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.+?)\*/g, '<em>$1</em>')
             .replace(/\n\n/g, '</p><p>')
@@ -356,6 +299,7 @@ class HomeAffairsAI {
             formatted = '<p>' + formatted + '</p>';
         }
 
+        // Convert URLs to links
         formatted = formatted.replace(
             /(https?:\/\/[^\s<]+)/g,
             '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
@@ -365,8 +309,8 @@ class HomeAffairsAI {
     }
 
     scrollToBottom() {
-        const chatMessages = document.getElementById('chatMessages');
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        const container = document.getElementById('chatMessages');
+        container.scrollTop = container.scrollHeight;
     }
 
     showLoading(show) {
@@ -374,34 +318,35 @@ class HomeAffairsAI {
     }
 
     updateCitations(sources) {
-        const citationList = document.getElementById('citationList');
-        const citationDrawer = document.getElementById('citationDrawer');
+        const list = document.getElementById('citationList');
+        const drawer = document.getElementById('citationDrawer');
 
-        citationList.innerHTML = '';
+        list.innerHTML = '';
 
         if (!sources || sources.length === 0) {
-            citationList.innerHTML = '<div class="no-citations"><p>No citations available for this response.</p></div>';
+            list.innerHTML = '<div class="no-citations"><p>No citations available.</p></div>';
             return;
         }
 
-        const allowedSources = sources.filter(source => {
-            const url = source.url || source.source_url || '';
+        // Filter for allowed domains
+        const filtered = sources.filter(s => {
+            const url = s.url || s.source_url || '';
             return CONFIG.ALLOWED_DOMAINS.some(domain => url.startsWith(domain));
         });
 
-        if (allowedSources.length === 0) {
-            citationList.innerHTML = '<div class="no-citations"><p>No official government sources found.</p></div>';
+        if (filtered.length === 0) {
+            list.innerHTML = '<div class="no-citations"><p>No official sources found.</p></div>';
             return;
         }
 
-        allowedSources.forEach((source, index) => {
-            const citationItem = document.createElement('div');
-            citationItem.className = 'citation-item';
+        filtered.forEach((source, index) => {
+            const item = document.createElement('div');
+            item.className = 'citation-item';
 
             const url = source.url || source.source_url || '#';
             const title = source.title || source.document_title || 'Official Document';
 
-            citationItem.innerHTML = `
+            item.innerHTML = `
                 <div class="citation-number">${index + 1}</div>
                 <div class="citation-content">
                     <div class="citation-title">${this.escapeHtml(title)}</div>
@@ -409,10 +354,10 @@ class HomeAffairsAI {
                 </div>
             `;
 
-            citationList.appendChild(citationItem);
+            list.appendChild(item);
         });
 
-        citationDrawer.classList.add('open');
+        drawer.classList.add('open');
     }
 
     escapeHtml(text) {
@@ -427,7 +372,7 @@ class HomeAffairsAI {
     }
 }
 
+// Initialize app
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🎉 DOM Ready - Starting application...');
     window.app = new HomeAffairsAI();
 });
