@@ -14,10 +14,10 @@
 ### ✅ Completed Features
 
 1. **Authentication System**
-   - JWT-based login with 30-day token validity
-   - Persistent session management
-   - Secure token storage in localStorage
-   - Logout functionality
+   - Developer API key authentication
+   - Persistent API key storage in localStorage
+   - Simple settings panel for API configuration
+   - No login/logout complexity
 
 2. **Chat Interface**
    - Clean, professional UI with HK Gov branding
