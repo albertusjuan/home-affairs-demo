@@ -29,8 +29,12 @@ home-affairs-demo/
 ├── app.js                  # Core application logic
 ├── config.js               # Configuration settings
 ├── README.md               # This file
-├── API_documentation.md    # WYNI API documentation
-└── Task Specification...   # Project specifications
+└── docs/                   # Documentation folder
+    ├── API_documentation.md        # WYNI API documentation
+    ├── DEPLOYMENT.md               # Production deployment guide
+    ├── MODULE_STATUS.md            # Project status tracking
+    ├── QUICKSTART.md               # Quick start guide
+    └── Task Specification...       # Project specifications
 ```
 
 ## Configuration
@@ -274,8 +278,8 @@ ENABLED_TOOLS: ['web_search', 'other_tool']
 ## API Documentation
 
 For complete API documentation, refer to:
-- `API_documentation.md` - Developer API guide
-- `Task Specification...md` - Project requirements
+- `docs/API_documentation.md` - Developer API guide
+- `docs/Task Specification...md` - Project requirements
 
 ## License
 
