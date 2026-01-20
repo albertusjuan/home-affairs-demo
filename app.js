@@ -143,11 +143,69 @@ class HomeAffairsAI {
         }
 
         try {
-            // Use streaming endpoint
-            await this.connectToStream(requestBody);
+            // Try streaming first, fall back to non-streaming if CORS issue
+            try {
+                await this.connectToStream(requestBody);
+            } catch (streamError) {
+                if (streamError.message.includes('CORS') || streamError.message.includes('Failed to fetch')) {
+                    console.warn('⚠️ Streaming failed (likely CORS), using non-streaming endpoint');
+                    await this.sendNonStreamingQuery(requestBody);
+                } else {
+                    throw streamError;
+                }
+            }
         } catch (error) {
             console.error('❌ Query error:', error);
             throw error;
+        }
+    }
+
+    async sendNonStreamingQuery(requestBody) {
+        const queryUrl = `${this.apiUrl}${CONFIG.ENDPOINTS.QUERY}`;
+        
+        if (CONFIG.DEBUG_MODE) {
+            console.log('📡 Using non-streaming endpoint:', queryUrl);
+        }
+
+        const response = await fetch(queryUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.apiKey}`,
+                'X-API-Key': this.apiKey,
+                'x-tenant-subdomain': CONFIG.TENANT_SUBDOMAIN
+            },
+            body: JSON.stringify(requestBody),
+            mode: 'cors'
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        
+        this.showLoading(false);
+        
+        // Display the answer
+        if (data.answer) {
+            this.addMessage(data.answer, 'assistant');
+            
+            // Add to conversation history
+            this.conversationHistory.push({
+                role: 'assistant',
+                content: data.answer
+            });
+        }
+        
+        // Display sources if available
+        if (data.sources) {
+            this.updateCitations(data.sources);
+        }
+        
+        if (CONFIG.DEBUG_MODE) {
+            console.log('✅ Response:', data);
         }
     }
 
@@ -170,9 +228,13 @@ class HomeAffairsAI {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${this.apiKey}`,
+                'X-API-Key': this.apiKey,
+                'x-tenant-subdomain': CONFIG.TENANT_SUBDOMAIN,
                 'Accept': 'text/event-stream'
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(requestBody),
+            mode: 'cors',
+            credentials: 'omit'
         });
 
         if (!response.ok) {
