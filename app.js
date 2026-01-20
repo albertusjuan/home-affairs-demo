@@ -133,9 +133,15 @@ class HomeAffairsAI {
             }
 
             const data = await response.json();
+            
+            // Debug: Log the response to see what we're getting
+            console.log('Login response:', data);
 
-            if (data.token) {
-                this.token = data.token;
+            // Try multiple possible token field names
+            const token = data.token || data.access_token || data.accessToken || data.jwt;
+            
+            if (token) {
+                this.token = token;
                 this.apiUrl = apiUrl;
 
                 // Store credentials
@@ -144,7 +150,8 @@ class HomeAffairsAI {
 
                 this.showChatInterface();
             } else {
-                throw new Error('No token received');
+                console.error('Token not found in response. Response data:', data);
+                throw new Error('No token received. Check console for details.');
             }
         } catch (error) {
             console.error('Login error:', error);

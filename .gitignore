@@ -51,4 +51,6 @@ temp/
 *.pem
 *.key
 secrets/
+config.local.js
+
 
