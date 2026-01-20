@@ -143,17 +143,9 @@ class HomeAffairsAI {
         }
 
         try {
-            // Try streaming first, fall back to non-streaming if CORS issue
-            try {
-                await this.connectToStream(requestBody);
-            } catch (streamError) {
-                if (streamError.message.includes('CORS') || streamError.message.includes('Failed to fetch')) {
-                    console.warn('⚠️ Streaming failed (likely CORS), using non-streaming endpoint');
-                    await this.sendNonStreamingQuery(requestBody);
-                } else {
-                    throw streamError;
-                }
-            }
+            // Use non-streaming endpoint to avoid CORS preflight issues
+            console.log('📡 Using non-streaming endpoint (CORS-friendly)');
+            await this.sendNonStreamingQuery(requestBody);
         } catch (error) {
             console.error('❌ Query error:', error);
             throw error;
