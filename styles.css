@@ -855,14 +855,14 @@ body {
     text-decoration: underline;
 }
 
-/* Settings Button - Fixed at bottom right, away from header */
+/* Settings Button - Fixed at top right corner of header */
 .btn-settings {
     position: fixed;
-    bottom: 2rem;
+    top: 1.5rem;
     right: 2rem;
-    background: white;
+    background: rgba(255, 255, 255, 0.95);
     color: var(--primary-navy);
-    border: 2px solid var(--primary-navy);
+    border: 2px solid rgba(255, 255, 255, 0.3);
     padding: 0.75rem 1.25rem;
     border-radius: 12px;
     font-size: 0.875rem;
@@ -872,15 +872,17 @@ body {
     align-items: center;
     gap: 0.5rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 100;
-    box-shadow: 0 4px 20px rgba(0, 51, 102, 0.15);
+    z-index: 110;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
 }
 
 .btn-settings:hover {
-    background: var(--primary-navy);
-    color: white;
+    background: white;
+    color: var(--accent-red);
+    border-color: white;
     transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(0, 51, 102, 0.25);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
 }
 
 /* Animations */
@@ -934,9 +936,8 @@ body {
     }
 
     .btn-settings {
-        bottom: 1rem;
+        top: 1rem;
         right: 1rem;
-        left: auto;
         padding: 0.625rem 1rem;
         font-size: 0.813rem;
     }
