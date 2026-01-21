@@ -1,66 +1,73 @@
 # Hong Kong Home Affairs AI Assistant
 
-A specialized AI chatbot interface for Hong Kong Home Affairs inquiries, providing high-accuracy information strictly from official government domains (had.gov.hk and hyab.gov.hk).
-
-## Quick Start
-
-1. **Open the application**: Simply open `index.html` in your browser
-2. **Enter your API credentials**:
-   - API URL: Your WYNI API Hub URL
-   - Developer API Key: Your WYNI Developer API key (starts with `dak-`)
-3. **Start chatting**: Ask questions about Hong Kong Home Affairs services
+A specialized AI chatbot providing information exclusively from official Hong Kong government websites (had.gov.hk and hyab.gov.hk).
 
 ## Features
 
-- ✅ **Official Source Verification**: Only searches had.gov.hk and hyab.gov.hk
-- ✅ **Real-time Streaming**: SSE for live response streaming
-- ✅ **Source Citations**: Automatic citation drawer with official links
-- ✅ **API Key Authentication**: Simple, secure developer API key access
-- ✅ **Professional UI**: HK Gov branding (Navy Blue #003366, Bauhinia Red #E60012)
-- ✅ **Zero Dependencies**: Pure HTML/CSS/JavaScript
+- ✅ **Official Sources Only** - Searches only Home Affairs Department and Home & Youth Affairs Bureau websites
+- ✅ **Real-time Streaming** - Live response updates via Server-Sent Events
+- ✅ **Multi-turn Conversations** - Maintains context across multiple questions
+- ✅ **Auto Citations** - Displays official government sources automatically
+- ✅ **Professional UI** - Hong Kong government branding (Navy Blue #003366, Bauhinia Red #E60012)
+- ✅ **Zero Build Process** - Pure HTML/CSS/JavaScript
 
-## Files
+## Quick Start
 
-```
-├── index.html      # Main interface
-├── styles.css      # Styling
-├── app.js          # Application logic
-├── config.js       # Configuration
-└── README.md       # This file
-```
-
-## Configuration
-
-The system automatically prepends this prompt to your first message:
-
-> "You are the Hong Kong Home Affairs AI Assistant. Your knowledge is strictly limited to the official websites of the Home Affairs Department (had.gov.hk) and the Home and Youth Affairs Bureau (hyab.gov.hk). When answering, search only these domains using the context of 'home affair Hong Kong'. Provide concise answers and always include the direct links to the relevant pages as citations."
-
-## Running Locally
-
-```bash
-# Option 1: Direct open
-# Simply double-click index.html
-
-# Option 2: Python server
-python -m http.server 8080
-
-# Option 3: Node.js
-npx serve -p 8080
-```
+See **[START.md](START.md)** for setup instructions.
 
 ## Documentation
 
-- **API Documentation**: `docs/API_documentation.md`
-- **Task Specification**: `docs/Task Specification Home Affairs AI Project HK - 2026-01-14 (3).md`
+- **[START.md](START.md)** - Quick start guide and setup instructions
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture and CORS explanation
+- **[docs/Task Specification...md](docs/Task%20Specification%20Home%20Affairs%20AI%20Project%20HK%20-%202026-01-14%20(3).md)** - Original requirements
 
-## Browser Support
+## Project Structure
 
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
+```
+home-affairs-demo/
+├── index.html              # Main application
+├── styles.css              # Styling
+├── app.js                  # Core logic
+├── config.js               # Base configuration
+├── config.local.js         # Your API key (gitignored)
+├── cors-proxy.js           # CORS proxy server
+├── package.json            # Dependencies
+├── START.md                # Quick start guide
+├── ARCHITECTURE.md         # Technical documentation
+└── docs/
+    └── Task Specification...md  # Requirements
+```
+
+## Technology Stack
+
+- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
+- **Markdown**: Marked.js
+- **CORS Proxy**: Node.js, Express, http-proxy-middleware
+- **Backend API**: WYNI AI Hub Developer API
+
+## Requirements
+
+- Node.js (for CORS proxy)
+- Python 3 (for web server)
+- Modern browser (Chrome, Firefox, Safari, Edge)
+- WYNI Developer API key
+
+## Security
+
+- API keys stored in `config.local.js` (gitignored)
+- Domain filtering ensures only official sources
+- HTTPS recommended for production
+
+## License
+
+Proprietary - Wyni Technology
+
+## Support
+
+For technical details, see [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ---
 
 **Version**: 1.0.0  
-**Last Updated**: 2026-01-20
+**Last Updated**: 2026-01-21  
+**Status**: Production Ready ✅
