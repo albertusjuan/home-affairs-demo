@@ -68,13 +68,6 @@ Navigate to: **http://localhost:8080**
 3. **View Citations**: Official sources appear in the drawer at the bottom
 4. **Multi-Turn**: Ask follow-up questions - context is maintained automatically
 
-### Example Queries
-
-- "What are the latest youth grants available?"
-- "How do I register for community services?"
-- "What facilities are available in my district?"
-- "Tell me more about the first grant" (follow-up question)
-
 ---
 
 ## Project Structure
