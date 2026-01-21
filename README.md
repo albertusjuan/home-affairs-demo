@@ -13,12 +13,12 @@ A specialized AI chatbot providing information exclusively from official Hong Ko
 
 ## Quick Start
 
-See **[START.md](START.md)** for setup instructions.
+See **[docs/START.md](docs/START.md)** for setup instructions.
 
 ## Documentation
 
-- **[START.md](START.md)** - Quick start guide and setup instructions
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture and CORS explanation
+- **[docs/START.md](docs/START.md)** - Quick start guide and setup instructions
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture and CORS explanation
 - **[docs/Task Specification...md](docs/Task%20Specification%20Home%20Affairs%20AI%20Project%20HK%20-%202026-01-14%20(3).md)** - Original requirements
 
 ## Project Structure
@@ -32,9 +32,9 @@ home-affairs-demo/
 ├── config.local.js         # Your API key (gitignored)
 ├── cors-proxy.js           # CORS proxy server
 ├── package.json            # Dependencies
-├── START.md                # Quick start guide
-├── ARCHITECTURE.md         # Technical documentation
 └── docs/
+    ├── START.md                # Quick start guide
+    ├── ARCHITECTURE.md         # Technical documentation
     └── Task Specification...md  # Requirements
 ```
 
@@ -64,7 +64,7 @@ Proprietary - Wyni Technology
 
 ## Support
 
-For technical details, see [ARCHITECTURE.md](ARCHITECTURE.md)
+For technical details, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ---
 
