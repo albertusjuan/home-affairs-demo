@@ -129,7 +129,7 @@ class HomeAffairsAI {
         // Add system prompt on first message
         let finalMsg = msg;
         if (this.isFirstMessage) {
-            finalMsg = `You are the Hong Kong Home Affairs AI Assistant. Your knowledge is strictly limited to the official websites of the Home Affairs Department (had.gov.hk) and the Home and Youth Affairs Bureau (hyab.gov.hk). When answering, search only these domains using the context of 'home affair Hong Kong'. Provide concise answers and always include the direct links to the relevant pages as citations.\n\nUser Question: ${msg}`;
+            finalMsg = `${CONFIG.SYSTEM_PROMPT}\n\nUser Question: ${msg}`;
             this.isFirstMessage = false;
         }
 
