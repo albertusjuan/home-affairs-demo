@@ -4,7 +4,7 @@ class HomeAffairsAI {
     constructor() {
         this.apiUrl = null;
         this.apiKey = null;
-        this.conversationId = null;
+        this.conversationHistory = [];
         this.isFirstMessage = true;
         this.init();
     }
@@ -29,44 +29,20 @@ class HomeAffairsAI {
     }
 
     async showChat() {
-        // Create session for multi-turn conversation
-        this.conversationId = sessionStorage.getItem('conversation_id');
-        if (!this.conversationId) {
+        // Load conversation history from sessionStorage
+        const savedHistory = sessionStorage.getItem('conversation_history');
+        if (savedHistory) {
             try {
-                await this.createSession();
-            } catch (error) {
-                console.error('Failed to create session:', error);
-                // Continue without conversation_id for now
+                this.conversationHistory = JSON.parse(savedHistory);
+                console.log('✓ Loaded conversation history:', this.conversationHistory.length, 'messages');
+            } catch (e) {
+                this.conversationHistory = [];
             }
         }
 
         document.getElementById('settingsPanel').style.display = 'none';
         document.getElementById('chatInterface').style.display = 'flex';
         document.getElementById('settingsButton').style.display = 'flex';
-    }
-
-    async createSession() {
-        const response = await fetch(`${this.apiUrl}/api/v1/chat/sessions`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${this.apiKey}`,
-                'Content-Type': 'application/json',
-                'x-tenant-subdomain': 'home-affairs-hk'
-            },
-            body: JSON.stringify({
-                title: 'Home Affairs Inquiry',
-                mode: 'fast'
-            })
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            this.conversationId = data.id;
-            sessionStorage.setItem('conversation_id', this.conversationId);
-            console.log('✓ Session created:', this.conversationId);
-        } else {
-            console.warn('Could not create session, continuing without conversation_id');
-        }
     }
 
     attachEvents() {
@@ -120,8 +96,8 @@ class HomeAffairsAI {
         localStorage.setItem('api_key', key);
         
         // Reset conversation
-        this.conversationId = null;
-        sessionStorage.removeItem('conversation_id');
+        this.conversationHistory = [];
+        sessionStorage.removeItem('conversation_history');
         this.isFirstMessage = true;
         
         this.showChat();
@@ -151,6 +127,12 @@ class HomeAffairsAI {
 
         this.addMsg(msg, 'user');
 
+        // Add to conversation history
+        this.conversationHistory.push({
+            role: 'user',
+            content: msg
+        });
+
         // Add system prompt on first message
         let finalMsg = msg;
         if (this.isFirstMessage) {
@@ -177,20 +159,21 @@ class HomeAffairsAI {
         
         const requestBody = {
             message: message,
-            enabled_tools: ['web_search']
+            tool_groups: ['web']
         };
 
-        // Add conversation_id if available for multi-turn context
-        if (this.conversationId) {
-            requestBody.conversation_id = this.conversationId;
+        // Add conversation history for multi-turn context (Developer API is stateless)
+        // Only include last 10 messages to keep context manageable
+        if (this.conversationHistory.length > 1) {
+            requestBody.context_history = this.conversationHistory.slice(-10);
+            console.log('✓ Including context history:', requestBody.context_history.length, 'messages');
         }
 
         const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${this.apiKey}`,
-                'Content-Type': 'application/json',
-                'x-tenant-subdomain': 'home-affairs-hk'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(requestBody)
         });
@@ -261,7 +244,16 @@ class HomeAffairsAI {
                             }
                             else if (currentEvent === 'done') {
                                 this.hideStatus();
-                                console.log('✓ Stream complete');
+                                // Add assistant response to history
+                                if (content) {
+                                    this.conversationHistory.push({
+                                        role: 'assistant',
+                                        content: content
+                                    });
+                                    // Save to sessionStorage
+                                    sessionStorage.setItem('conversation_history', JSON.stringify(this.conversationHistory));
+                                    console.log('✓ Stream complete, saved to history');
+                                }
                             }
                             else if (currentEvent === 'error') {
                                 console.error('Stream error:', json);
