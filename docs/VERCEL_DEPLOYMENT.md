@@ -18,10 +18,10 @@ Your senior is correct - we should NOT call the API directly from the browser be
 
 ### How It Works
 
-1. **Frontend** (`app.js`) calls `/api/proxy` on your Vercel domain
-2. **Vercel Proxy** (`api/proxy.js`) forwards the request to `https://hub.wyniai.com`
+1. **Frontend** (`app.js`) calls `/api/ai` on your Vercel domain
+2. **Vercel Function** (`api/ai.js`) forwards the request to `https://hub.wyniai.com`
 3. **WYNI AI Hub** processes the request and streams the response back
-4. **Vercel Proxy** streams the response back to the browser
+4. **Vercel Function** streams the response back to the browser
 
 ## Environment Variables
 
@@ -112,7 +112,7 @@ Visit `http://localhost:8080` and enter your API key.
 ```
 home-affairs-demo/
 ├── api/
-│   └── proxy.js              # Vercel serverless function (proxy)
+│   └── ai.js                 # Vercel serverless function
 ├── docs/
 │   ├── API_documentation.md
 │   ├── ARCHITECTURE.md
@@ -123,10 +123,11 @@ home-affairs-demo/
 ├── app.js                    # Frontend logic
 ├── config.js                 # Public configuration
 ├── config.local.js           # Local API key (git-ignored)
-├── vercel.json               # Vercel configuration
 ├── cors-proxy.js             # Local development proxy (optional)
 └── README.md
 ```
+
+**Note**: No `vercel.json` needed! Vercel auto-detects everything.
 
 ## Troubleshooting
 

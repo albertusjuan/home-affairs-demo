@@ -27,7 +27,7 @@ See **[docs/START.md](docs/START.md)** for setup instructions.
 ```
 home-affairs-demo/
 ├── api/
-│   └── proxy.js            # Vercel serverless proxy
+│   └── ai.js               # Vercel serverless function
 ├── docs/
 │   ├── START.md            # Quick start guide
 │   ├── VERCEL_DEPLOYMENT.md # Deployment guide
@@ -39,7 +39,6 @@ home-affairs-demo/
 ├── config.js               # Base configuration
 ├── config.local.js         # Your API key (gitignored)
 ├── cors-proxy.js           # Local dev proxy (optional)
-├── vercel.json             # Vercel configuration
 └── package.json            # Dependencies
 ```
 

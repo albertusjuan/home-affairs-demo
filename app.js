@@ -148,8 +148,8 @@ class HomeAffairsAI {
     }
 
     async query(message) {
-        // Use Vercel proxy: Browser -> Vercel -> WYNI AI Hub
-        const url = '/api/proxy';
+        // Browser -> Vercel -> AI Hub Backend
+        const url = '/api/ai';
         
         const requestBody = {
             message: message,
