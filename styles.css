@@ -842,26 +842,29 @@ body {
 /* Settings Button */
 .btn-settings {
     position: fixed;
-    top: 1rem;
-    right: 2rem;
+    bottom: 1.5rem;
+    right: 1.5rem;
     background: white;
     color: var(--primary-navy);
     border: 2px solid var(--primary-navy);
-    padding: 0.625rem 1.25rem;
-    border-radius: 8px;
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 101;
+    box-shadow: 0 4px 20px rgba(0, 51, 102, 0.15);
 }
 
 .btn-settings:hover {
     background: var(--primary-navy);
     color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0, 51, 102, 0.25);
 }
 
 /* Animations */
