@@ -1,0 +1,7 @@
+node_modules
+.git
+config.local.js
+cors-proxy.js
+package.json
+package-lock.json
+
