@@ -280,9 +280,10 @@ body {
 }
 
 .message-user .message-content {
-    background: var(--primary-navy);
+    background: linear-gradient(135deg, var(--primary-navy) 0%, #004d99 100%);
     color: white;
     border-bottom-right-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 51, 102, 0.15);
 }
 
 .message-assistant .message-content {
@@ -290,7 +291,12 @@ body {
     color: var(--text-primary);
     border: 1px solid var(--border-color);
     border-bottom-left-radius: 4px;
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    transition: box-shadow 0.3s ease;
+}
+
+.message-assistant .message-content:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .message-content p {
@@ -405,39 +411,77 @@ body {
     font-weight: 600;
 }
 
-/* Loading Indicator */
-.loading-indicator {
+/* Status Indicator */
+.status-indicator {
     padding: 1rem 2rem;
-    background: white;
-    border-top: 1px solid var(--border-color);
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-top: 1px solid #bae6fd;
+    animation: slideDown 0.3s ease;
 }
 
-.loading-content {
+.status-content {
     max-width: 1000px;
     margin: 0 auto;
     display: flex;
     align-items: center;
     gap: 1rem;
-    color: var(--text-secondary);
+    color: var(--primary-navy);
     font-size: 0.95rem;
+    font-weight: 500;
 }
 
-.pulse-animation {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: var(--primary-navy);
-    animation: pulse 1.5s ease-in-out infinite;
+.status-icon {
+    font-size: 1.5rem;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.status-icon.searching {
+    animation: searchPulse 1.5s ease-in-out infinite;
+}
+
+.status-icon.processing {
+    animation: spin 2s linear infinite;
 }
 
 @keyframes pulse {
     0%, 100% {
-        opacity: 0.3;
-        transform: scale(0.9);
+        opacity: 0.6;
+        transform: scale(0.95);
     }
     50% {
         opacity: 1;
-        transform: scale(1.1);
+        transform: scale(1.05);
+    }
+}
+
+@keyframes searchPulse {
+    0%, 100% {
+        opacity: 0.7;
+        transform: scale(1) rotate(-5deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1) rotate(5deg);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
@@ -477,7 +521,7 @@ body {
 }
 
 .btn-send {
-    background: var(--accent-red);
+    background: linear-gradient(135deg, var(--accent-red) 0%, #c70010 100%);
     color: white;
     border: none;
     width: 48px;
@@ -489,18 +533,63 @@ body {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(230, 0, 18, 0.2);
 }
 
 .btn-send:hover:not(:disabled) {
-    background: #c70010;
+    background: linear-gradient(135deg, #c70010 0%, #a00010 100%);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 12px rgba(230, 0, 18, 0.3);
+}
+
+.btn-send:active:not(:disabled) {
+    transform: translateY(0);
 }
 
 .btn-send:disabled {
     background: var(--border-color);
     cursor: not-allowed;
     opacity: 0.5;
+    box-shadow: none;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+    display: flex;
+    gap: 0.4rem;
+    padding: 1rem 1.25rem;
+    align-items: center;
+}
+
+.typing-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary-navy);
+    animation: typingBounce 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typingBounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-10px);
+        opacity: 1;
+    }
 }
 
 /* Citation Drawer */
@@ -577,14 +666,18 @@ body {
     border-radius: 8px;
     margin-bottom: 0.75rem;
     transition: all 0.3s ease;
+    border: 1px solid transparent;
 }
 
 .citation-item:hover {
     background: #e8eef5;
+    border-color: var(--primary-navy);
+    transform: translateX(4px);
+    box-shadow: var(--shadow-sm);
 }
 
 .citation-number {
-    background: var(--primary-navy);
+    background: linear-gradient(135deg, var(--primary-navy) 0%, #004d99 100%);
     color: white;
     width: 28px;
     height: 28px;
@@ -595,6 +688,7 @@ body {
     font-weight: 600;
     font-size: 0.875rem;
     flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0, 51, 102, 0.2);
 }
 
 .citation-content {

@@ -1,14 +1,15 @@
-// Hong Kong Home Affairs AI Assistant - Simplified
+// Hong Kong Home Affairs AI Assistant
 
 class HomeAffairsAI {
     constructor() {
         this.apiUrl = null;
         this.apiKey = null;
+        this.conversationId = null;
         this.isFirstMessage = true;
         this.init();
     }
 
-    init() {
+    async init() {
         // Load from config.local.js or localStorage
         if (window.LOCAL_CONFIG) {
             this.apiUrl = window.LOCAL_CONFIG.API_BASE_URL;
@@ -19,12 +20,53 @@ class HomeAffairsAI {
         }
 
         if (this.apiUrl && this.apiKey) {
-            this.showChat();
+            await this.showChat();
         } else {
             this.showSettings();
         }
 
         this.attachEvents();
+    }
+
+    async showChat() {
+        // Create session for multi-turn conversation
+        this.conversationId = sessionStorage.getItem('conversation_id');
+        if (!this.conversationId) {
+            try {
+                await this.createSession();
+            } catch (error) {
+                console.error('Failed to create session:', error);
+                // Continue without conversation_id for now
+            }
+        }
+
+        document.getElementById('settingsPanel').style.display = 'none';
+        document.getElementById('chatInterface').style.display = 'flex';
+        document.getElementById('settingsButton').style.display = 'flex';
+    }
+
+    async createSession() {
+        const response = await fetch(`${this.apiUrl}/api/v1/chat/sessions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.apiKey}`,
+                'Content-Type': 'application/json',
+                'x-tenant-subdomain': 'home-affairs-hk'
+            },
+            body: JSON.stringify({
+                title: 'Home Affairs Inquiry',
+                mode: 'fast'
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            this.conversationId = data.id;
+            sessionStorage.setItem('conversation_id', this.conversationId);
+            console.log('✓ Session created:', this.conversationId);
+        } else {
+            console.warn('Could not create session, continuing without conversation_id');
+        }
     }
 
     attachEvents() {
@@ -56,6 +98,11 @@ class HomeAffairsAI {
                 this.send();
             });
         });
+
+        // Settings button
+        document.getElementById('settingsButton')?.addEventListener('click', () => {
+            this.showSettings();
+        });
     }
 
     saveSettings() {
@@ -71,6 +118,12 @@ class HomeAffairsAI {
         this.apiKey = key;
         localStorage.setItem('api_url', url);
         localStorage.setItem('api_key', key);
+        
+        // Reset conversation
+        this.conversationId = null;
+        sessionStorage.removeItem('conversation_id');
+        this.isFirstMessage = true;
+        
         this.showChat();
     }
 
@@ -78,12 +131,10 @@ class HomeAffairsAI {
         document.getElementById('settingsPanel').style.display = 'flex';
         document.getElementById('chatInterface').style.display = 'none';
         document.getElementById('settingsButton').style.display = 'none';
-    }
-
-    showChat() {
-        document.getElementById('settingsPanel').style.display = 'none';
-        document.getElementById('chatInterface').style.display = 'flex';
-        document.getElementById('settingsButton').style.display = 'flex';
+        
+        // Pre-fill current values
+        if (this.apiUrl) document.getElementById('apiUrl').value = this.apiUrl;
+        if (this.apiKey) document.getElementById('apiKey').value = this.apiKey;
     }
 
     async send() {
@@ -107,14 +158,14 @@ class HomeAffairsAI {
             this.isFirstMessage = false;
         }
 
-        this.showLoading(true);
+        this.showStatus('preparing', 'Preparing query...');
 
         try {
             await this.query(finalMsg);
         } catch (e) {
             console.error('Error:', e);
-            this.addMsg('Error: ' + e.message, 'assistant');
-            this.showLoading(false);
+            this.addMsg('❌ Error: ' + e.message, 'assistant');
+            this.hideStatus();
         }
 
         input.disabled = false;
@@ -124,16 +175,24 @@ class HomeAffairsAI {
     async query(message) {
         const url = `${this.apiUrl}/api/v1/developer/agent/query/stream`;
         
+        const requestBody = {
+            message: message,
+            enabled_tools: ['web_search']
+        };
+
+        // Add conversation_id if available for multi-turn context
+        if (this.conversationId) {
+            requestBody.conversation_id = this.conversationId;
+        }
+
         const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${this.apiKey}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'x-tenant-subdomain': 'home-affairs-hk'
             },
-            body: JSON.stringify({
-                message: message,
-                tool_groups: ['web']
-            })
+            body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -171,8 +230,20 @@ class HomeAffairsAI {
                         try {
                             const json = JSON.parse(data);
 
-                            if (currentEvent === 'answer_chunk') {
-                                this.showLoading(false);
+                            if (currentEvent === 'start') {
+                                console.log('✓ Stream started');
+                                this.showStatus('processing', 'Processing...');
+                            }
+                            else if (currentEvent === 'thinking') {
+                                console.log('✓ AI thinking...');
+                                this.showStatus('thinking', '🔍 Searching official HK Gov domains...');
+                            }
+                            else if (currentEvent === 'tool_start') {
+                                console.log('✓ Tool executing:', json.tool_name);
+                                this.showStatus('searching', '🌐 Searching official websites...');
+                            }
+                            else if (currentEvent === 'answer_chunk') {
+                                this.hideStatus();
                                 if (!assistantEl) {
                                     assistantEl = this.createMsg('', 'assistant');
                                     content = '';
@@ -180,13 +251,24 @@ class HomeAffairsAI {
                                 content += json.chunk || '';
                                 assistantEl.innerHTML = this.format(content);
                                 this.scroll();
-                            } else if (currentEvent === 'sources') {
+                            }
+                            else if (currentEvent === 'sources') {
+                                console.log('✓ Sources received:', json.sources?.length || 0);
                                 this.showSources(json.sources || []);
-                            } else if (currentEvent === 'done') {
-                                this.showLoading(false);
-                            } else if (currentEvent === 'error') {
+                            }
+                            else if (currentEvent === 'answer_done') {
+                                console.log('✓ Answer complete');
+                            }
+                            else if (currentEvent === 'done') {
+                                this.hideStatus();
+                                console.log('✓ Stream complete');
+                            }
+                            else if (currentEvent === 'error') {
                                 console.error('Stream error:', json);
-                                this.showLoading(false);
+                                this.hideStatus();
+                                if (!assistantEl) {
+                                    this.addMsg('❌ An error occurred while processing your request.', 'assistant');
+                                }
                             }
                         } catch (e) {
                             console.warn('Parse error:', e);
@@ -196,8 +278,33 @@ class HomeAffairsAI {
             }
         } catch (e) {
             console.error('Stream error:', e);
-            this.showLoading(false);
+            this.hideStatus();
+            if (!assistantEl) {
+                this.addMsg('❌ Connection error occurred.', 'assistant');
+            }
         }
+    }
+
+    showStatus(type, message) {
+        const indicator = document.getElementById('statusIndicator');
+        const icon = indicator.querySelector('.status-icon');
+        const text = indicator.querySelector('.status-text');
+        
+        // Update icon based on type
+        if (type === 'thinking' || type === 'searching') {
+            icon.innerHTML = '🔍';
+            icon.className = 'status-icon searching';
+        } else {
+            icon.innerHTML = '⚙️';
+            icon.className = 'status-icon processing';
+        }
+        
+        text.textContent = message;
+        indicator.style.display = 'flex';
+    }
+
+    hideStatus() {
+        document.getElementById('statusIndicator').style.display = 'none';
     }
 
     addMsg(text, role) {
@@ -250,10 +357,6 @@ class HomeAffairsAI {
         el.scrollTop = el.scrollHeight;
     }
 
-    showLoading(show) {
-        document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
-    }
-
     showSources(sources) {
         const list = document.getElementById('citationList');
         const drawer = document.getElementById('citationDrawer');
@@ -273,7 +376,7 @@ class HomeAffairsAI {
         });
 
         if (filtered.length === 0) {
-            list.innerHTML = '<div class="no-citations"><p>No official sources found.</p></div>';
+            list.innerHTML = '<div class="no-citations"><p>No official government sources found.</p></div>';
             return;
         }
 
@@ -287,7 +390,7 @@ class HomeAffairsAI {
                 <div class="citation-number">${i + 1}</div>
                 <div class="citation-content">
                     <div class="citation-title">${this.escape(title)}</div>
-                    <a href="${url}" target="_blank" class="citation-url">${url}</a>
+                    <a href="${url}" target="_blank" rel="noopener noreferrer" class="citation-url">${url}</a>
                 </div>
             `;
             list.appendChild(item);
