@@ -4,7 +4,7 @@
 const LOCAL_CONFIG = {
     // Your WYNI Developer API Key
     // Get from: https://hub.wyniai.com -> Profile -> Developer API -> Create Key
-    API_KEY: 'dak-your-api-key-heredak-0947171a-ikCVLEzk40GUFqzEZVC4ZVuNYjevxSuH',
+    API_KEY: 'dak-0947171a-ikCVLEzk40GUFqzEZVC4ZVuNYjevxSuH',
     
     // WYNI API Base URL
     API_BASE_URL: 'https://hub.wyniai.com',

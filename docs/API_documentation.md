@@ -22,8 +22,8 @@ Use the WYNI Developer API to run a stateless, fast-mode agent against your own 
 3. **Call the agent**
 
 ```bash
-API_URL="https://your-host"
-DEV_API_KEY="dak-xxxx-yyyy"
+API_URL="https://hub.wyniai.com"
+DEV_API_KEY="dak-0947171a-ikCVLEzk40GUFqzEZVC4ZVuNYjevxSuH"
 
 curl -X POST "$API_URL/api/v1/developer/agent/query" \
   -H "Authorization: Bearer $DEV_API_KEY" \

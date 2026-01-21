@@ -1,204 +1,156 @@
-// Hong Kong Home Affairs AI Assistant - Main Application
+// Hong Kong Home Affairs AI Assistant - Simplified
 
 class HomeAffairsAI {
     constructor() {
         this.apiUrl = null;
         this.apiKey = null;
         this.isFirstMessage = true;
-        this.currentEventSource = null;
-
         this.init();
     }
 
     init() {
-        // Check for saved settings
-        this.apiUrl = localStorage.getItem(CONFIG.API_URL_KEY);
-        this.apiKey = localStorage.getItem(CONFIG.API_KEY_STORAGE);
+        // Load from config.local.js or localStorage
+        if (window.LOCAL_CONFIG) {
+            this.apiUrl = window.LOCAL_CONFIG.API_BASE_URL;
+            this.apiKey = window.LOCAL_CONFIG.API_KEY;
+        } else {
+            this.apiUrl = localStorage.getItem('api_url');
+            this.apiKey = localStorage.getItem('api_key');
+        }
 
         if (this.apiUrl && this.apiKey) {
-            this.showChatInterface();
+            this.showChat();
         } else {
-            this.showSettingsPanel();
+            this.showSettings();
         }
 
-        this.attachEventListeners();
+        this.attachEvents();
     }
 
-    attachEventListeners() {
-        // Settings
-        const saveBtn = document.getElementById('saveSettings');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => this.saveSettings());
-        }
+    attachEvents() {
+        document.getElementById('saveSettings')?.addEventListener('click', () => this.saveSettings());
+        document.getElementById('sendButton')?.addEventListener('click', () => this.send());
+        document.getElementById('closeDrawer')?.addEventListener('click', () => {
+            document.getElementById('citationDrawer').classList.remove('open');
+        });
 
-        // Message input
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
-
-        if (messageInput) {
-            messageInput.addEventListener('input', () => {
-                this.autoResize(messageInput);
-                sendButton.disabled = messageInput.value.trim() === '';
+        const input = document.getElementById('messageInput');
+        if (input) {
+            input.addEventListener('input', () => {
+                input.style.height = 'auto';
+                input.style.height = Math.min(input.scrollHeight, 150) + 'px';
+                document.getElementById('sendButton').disabled = !input.value.trim();
             });
-
-            messageInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey && input.value.trim()) {
                     e.preventDefault();
-                    if (messageInput.value.trim()) {
-                        this.sendMessage();
-                    }
+                    this.send();
                 }
             });
         }
 
-        if (sendButton) {
-            sendButton.addEventListener('click', () => this.sendMessage());
-        }
-
-        // Settings button
-        const settingsBtn = document.getElementById('settingsButton');
-        if (settingsBtn) {
-            settingsBtn.addEventListener('click', () => this.showSettingsPanel());
-        }
-
-        // Citation drawer
-        const closeDrawer = document.getElementById('closeDrawer');
-        if (closeDrawer) {
-            closeDrawer.addEventListener('click', () => {
-                document.getElementById('citationDrawer').classList.remove('open');
+        document.querySelectorAll('.suggestion-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                input.value = chip.dataset.query;
+                document.getElementById('sendButton').disabled = false;
+                this.send();
             });
-        }
-
-        // Suggestion chips
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('suggestion-chip')) {
-                const query = e.target.getAttribute('data-query');
-                if (query && messageInput) {
-                    messageInput.value = query;
-                    sendButton.disabled = false;
-                    this.sendMessage();
-                }
-            }
         });
     }
 
-    autoResize(textarea) {
-        textarea.style.height = 'auto';
-        textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
-    }
-
     saveSettings() {
-        const apiUrl = document.getElementById('apiUrl').value.trim();
-        const apiKey = document.getElementById('apiKey').value.trim();
+        const url = document.getElementById('apiUrl').value.trim();
+        const key = document.getElementById('apiKey').value.trim();
 
-        if (!apiUrl || !apiKey) {
+        if (!url || !key) {
             alert('Please enter both API URL and API Key');
             return;
         }
 
-        this.apiUrl = apiUrl;
-        this.apiKey = apiKey;
-
-        localStorage.setItem(CONFIG.API_URL_KEY, apiUrl);
-        localStorage.setItem(CONFIG.API_KEY_STORAGE, apiKey);
-
-        this.showChatInterface();
+        this.apiUrl = url;
+        this.apiKey = key;
+        localStorage.setItem('api_url', url);
+        localStorage.setItem('api_key', key);
+        this.showChat();
     }
 
-    showSettingsPanel() {
+    showSettings() {
         document.getElementById('settingsPanel').style.display = 'flex';
         document.getElementById('chatInterface').style.display = 'none';
         document.getElementById('settingsButton').style.display = 'none';
-
-        // Populate fields
-        if (this.apiUrl) document.getElementById('apiUrl').value = this.apiUrl;
-        if (this.apiKey) document.getElementById('apiKey').value = this.apiKey;
     }
 
-    showChatInterface() {
+    showChat() {
         document.getElementById('settingsPanel').style.display = 'none';
         document.getElementById('chatInterface').style.display = 'flex';
         document.getElementById('settingsButton').style.display = 'flex';
     }
 
-    async sendMessage() {
+    async send() {
         const input = document.getElementById('messageInput');
-        const userMessage = input.value.trim();
+        const msg = input.value.trim();
+        if (!msg) return;
 
-        if (!userMessage) return;
-
-        // Disable input
         input.disabled = true;
         document.getElementById('sendButton').disabled = true;
-
-        // Clear input
         input.value = '';
         input.style.height = 'auto';
 
-        // Remove welcome if present
-        const welcome = document.querySelector('.welcome-message');
-        if (welcome) welcome.remove();
+        document.querySelector('.welcome-message')?.remove();
 
-        // Add user message
-        this.addMessage(userMessage, 'user');
+        this.addMsg(msg, 'user');
 
-        // Prepare query with system prompt if first message
-        let finalMessage = userMessage;
+        // Add system prompt on first message
+        let finalMsg = msg;
         if (this.isFirstMessage) {
-            finalMessage = `${CONFIG.SYSTEM_PROMPT}\n\nUser Question: ${userMessage}`;
+            finalMsg = `You are the Hong Kong Home Affairs AI Assistant. Your knowledge is strictly limited to the official websites of the Home Affairs Department (had.gov.hk) and the Home and Youth Affairs Bureau (hyab.gov.hk). When answering, search only these domains using the context of 'home affair Hong Kong'. Provide concise answers and always include the direct links to the relevant pages as citations.\n\nUser Question: ${msg}`;
             this.isFirstMessage = false;
         }
 
-        // Show loading
         this.showLoading(true);
 
         try {
-            await this.queryAgent(finalMessage);
-        } catch (error) {
-            console.error('Error:', error);
-            this.addMessage('Sorry, an error occurred. Please check your API key and try again.', 'assistant');
+            await this.query(finalMsg);
+        } catch (e) {
+            console.error('Error:', e);
+            this.addMsg('Error: ' + e.message, 'assistant');
             this.showLoading(false);
         }
 
-        // Re-enable input
         input.disabled = false;
         input.focus();
     }
 
-    async queryAgent(message) {
-        try {
-            const response = await fetch(`${this.apiUrl}/api/v1/developer/agent/query/stream`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: message,
-                    system_prompt: CONFIG.SYSTEM_PROMPT,
-                    tool_groups: ['web']
-                })
-            });
+    async query(message) {
+        const url = `${this.apiUrl}/api/v1/developer/agent/query/stream`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: message,
+                tool_groups: ['web']
+            })
+        });
 
-            if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
-            }
-
-            // Handle SSE stream
-            this.handleStream(response.body);
-
-        } catch (error) {
-            console.error('Query error:', error);
-            throw error;
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`API error ${response.status}: ${text}`);
         }
+
+        await this.readStream(response.body);
     }
 
-    async handleStream(stream) {
+    async readStream(stream) {
         const reader = stream.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
-        let assistantElement = null;
-        let assistantContent = '';
+        let assistantEl = null;
+        let content = '';
+        let currentEvent = '';
 
         try {
             while (true) {
@@ -210,117 +162,90 @@ class HomeAffairsAI {
                 buffer = lines.pop() || '';
 
                 for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6).trim();
-                        if (data === '[DONE]') {
-                            this.showLoading(false);
-                            continue;
-                        }
+                    if (line.startsWith('event:')) {
+                        currentEvent = line.substring(6).trim();
+                    } else if (line.startsWith('data:')) {
+                        const data = line.substring(5).trim();
+                        if (!data || data === '{}') continue;
 
                         try {
-                            const event = JSON.parse(data);
-                            
-                            if (event.event === 'start') {
-                                console.log('Stream started');
-                            }
-                            else if (event.event === 'thinking') {
-                                // Loading indicator already shown
-                            }
-                            else if (event.event === 'answer_chunk') {
+                            const json = JSON.parse(data);
+
+                            if (currentEvent === 'answer_chunk') {
                                 this.showLoading(false);
-                                const chunk = event.data?.chunk || '';
-                                
-                                if (!assistantElement) {
-                                    assistantElement = this.createMessageElement('', 'assistant');
-                                    assistantContent = '';
+                                if (!assistantEl) {
+                                    assistantEl = this.createMsg('', 'assistant');
+                                    content = '';
                                 }
-                                
-                                assistantContent += chunk;
-                                this.updateMessage(assistantElement, assistantContent);
-                            }
-                            else if (event.event === 'sources') {
-                                const sources = event.data?.sources || [];
-                                this.updateCitations(sources);
-                            }
-                            else if (event.event === 'done') {
+                                content += json.chunk || '';
+                                assistantEl.innerHTML = this.format(content);
+                                this.scroll();
+                            } else if (currentEvent === 'sources') {
+                                this.showSources(json.sources || []);
+                            } else if (currentEvent === 'done') {
                                 this.showLoading(false);
-                            }
-                            else if (event.event === 'error') {
-                                console.error('Stream error:', event.data);
+                            } else if (currentEvent === 'error') {
+                                console.error('Stream error:', json);
                                 this.showLoading(false);
                             }
                         } catch (e) {
-                            // Skip invalid JSON
+                            console.warn('Parse error:', e);
                         }
                     }
                 }
             }
-        } catch (error) {
-            console.error('Stream reading error:', error);
+        } catch (e) {
+            console.error('Stream error:', e);
             this.showLoading(false);
         }
     }
 
-    addMessage(content, role) {
-        const element = this.createMessageElement(content, role);
-        return element;
+    addMsg(text, role) {
+        const el = this.createMsg(text, role);
+        return el;
     }
 
-    createMessageElement(content, role) {
+    createMsg(text, role) {
         const container = document.getElementById('chatMessages');
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message message-${role}`;
-
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'message-content';
-        contentDiv.innerHTML = this.formatContent(content);
-
-        messageDiv.appendChild(contentDiv);
-        container.appendChild(messageDiv);
-        this.scrollToBottom();
-
-        return contentDiv;
+        const msg = document.createElement('div');
+        msg.className = `message message-${role}`;
+        
+        const content = document.createElement('div');
+        content.className = 'message-content';
+        content.innerHTML = this.format(text);
+        
+        msg.appendChild(content);
+        container.appendChild(msg);
+        this.scroll();
+        
+        return content;
     }
 
-    updateMessage(element, content) {
-        element.innerHTML = this.formatContent(content);
-        this.scrollToBottom();
-    }
-
-    formatContent(text) {
-        // Simple markdown-like formatting
-        let formatted = text
+    format(text) {
+        let html = text
             .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.+?)\*/g, '<em>$1</em>')
             .replace(/\n\n/g, '</p><p>')
             .replace(/\n/g, '<br>');
 
-        if (!formatted.startsWith('<p>')) {
-            formatted = '<p>' + formatted + '</p>';
-        }
-
-        // Convert URLs to links
-        formatted = formatted.replace(
-            /(https?:\/\/[^\s<]+)/g,
-            '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
-        );
-
-        return formatted;
+        if (!html.startsWith('<p>')) html = '<p>' + html + '</p>';
+        html = html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank">$1</a>');
+        return html;
     }
 
-    scrollToBottom() {
-        const container = document.getElementById('chatMessages');
-        container.scrollTop = container.scrollHeight;
+    scroll() {
+        const el = document.getElementById('chatMessages');
+        el.scrollTop = el.scrollHeight;
     }
 
     showLoading(show) {
         document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
     }
 
-    updateCitations(sources) {
+    showSources(sources) {
         const list = document.getElementById('citationList');
         const drawer = document.getElementById('citationDrawer');
-
+        
         list.innerHTML = '';
 
         if (!sources || sources.length === 0) {
@@ -329,9 +254,10 @@ class HomeAffairsAI {
         }
 
         // Filter for allowed domains
+        const allowed = ['https://www.had.gov.hk/', 'https://www.hyab.gov.hk/'];
         const filtered = sources.filter(s => {
             const url = s.url || s.source_url || '';
-            return CONFIG.ALLOWED_DOMAINS.some(domain => url.startsWith(domain));
+            return allowed.some(d => url.startsWith(d));
         });
 
         if (filtered.length === 0) {
@@ -339,40 +265,32 @@ class HomeAffairsAI {
             return;
         }
 
-        filtered.forEach((source, index) => {
+        filtered.forEach((src, i) => {
             const item = document.createElement('div');
             item.className = 'citation-item';
-
-            const url = source.url || source.source_url || '#';
-            const title = source.title || source.document_title || 'Official Document';
-
+            const url = src.url || src.source_url || '#';
+            const title = src.title || src.document_title || 'Official Document';
+            
             item.innerHTML = `
-                <div class="citation-number">${index + 1}</div>
+                <div class="citation-number">${i + 1}</div>
                 <div class="citation-content">
-                    <div class="citation-title">${this.escapeHtml(title)}</div>
-                    <a href="${url}" target="_blank" rel="noopener noreferrer" class="citation-url">${url}</a>
+                    <div class="citation-title">${this.escape(title)}</div>
+                    <a href="${url}" target="_blank" class="citation-url">${url}</a>
                 </div>
             `;
-
             list.appendChild(item);
         });
 
         drawer.classList.add('open');
     }
 
-    escapeHtml(text) {
-        const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return text.replace(/[&<>"']/g, m => map[m]);
+    escape(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 
-// Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new HomeAffairsAI();
 });
