@@ -2,7 +2,6 @@
 
 class HomeAffairsAI {
     constructor() {
-        this.apiUrl = null;
         this.apiKey = null;
         this.conversationHistory = [];
         this.isFirstMessage = true;
@@ -10,16 +9,14 @@ class HomeAffairsAI {
     }
 
     async init() {
-        // Load from config.local.js or localStorage
+        // Load API key from config.local.js or localStorage
         if (window.LOCAL_CONFIG) {
-            this.apiUrl = window.LOCAL_CONFIG.API_BASE_URL;
             this.apiKey = window.LOCAL_CONFIG.API_KEY;
         } else {
-            this.apiUrl = localStorage.getItem('api_url');
             this.apiKey = localStorage.getItem('api_key');
         }
 
-        if (this.apiUrl && this.apiKey) {
+        if (this.apiKey) {
             await this.showChat();
         } else {
             this.showSettings();
@@ -82,17 +79,14 @@ class HomeAffairsAI {
     }
 
     saveSettings() {
-        const url = document.getElementById('apiUrl').value.trim();
         const key = document.getElementById('apiKey').value.trim();
 
-        if (!url || !key) {
-            alert('Please enter both API URL and API Key');
+        if (!key) {
+            alert('Please enter your API Key');
             return;
         }
 
-        this.apiUrl = url;
         this.apiKey = key;
-        localStorage.setItem('api_url', url);
         localStorage.setItem('api_key', key);
         
         // Reset conversation
@@ -108,8 +102,7 @@ class HomeAffairsAI {
         document.getElementById('chatInterface').style.display = 'none';
         document.getElementById('settingsButton').style.display = 'none';
         
-        // Pre-fill current values
-        if (this.apiUrl) document.getElementById('apiUrl').value = this.apiUrl;
+        // Pre-fill current value
         if (this.apiKey) document.getElementById('apiKey').value = this.apiKey;
     }
 
@@ -155,7 +148,8 @@ class HomeAffairsAI {
     }
 
     async query(message) {
-        const url = `${this.apiUrl}/api/v1/developer/agent/query/stream`;
+        // Use Vercel proxy: Browser -> Vercel -> WYNI AI Hub
+        const url = '/api/proxy';
         
         const requestBody = {
             message: message,

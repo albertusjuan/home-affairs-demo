@@ -18,6 +18,7 @@ See **[docs/START.md](docs/START.md)** for setup instructions.
 ## Documentation
 
 - **[docs/START.md](docs/START.md)** - Quick start guide and setup instructions
+- **[docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md)** - Production deployment guide
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture and CORS explanation
 - **[docs/Task Specification...md](docs/Task%20Specification%20Home%20Affairs%20AI%20Project%20HK%20-%202026-01-14%20(3).md)** - Original requirements
 
@@ -25,32 +26,37 @@ See **[docs/START.md](docs/START.md)** for setup instructions.
 
 ```
 home-affairs-demo/
+├── api/
+│   └── proxy.js            # Vercel serverless proxy
+├── docs/
+│   ├── START.md            # Quick start guide
+│   ├── VERCEL_DEPLOYMENT.md # Deployment guide
+│   ├── ARCHITECTURE.md     # Technical documentation
+│   └── Task Specification...md
 ├── index.html              # Main application
 ├── styles.css              # Styling
 ├── app.js                  # Core logic
 ├── config.js               # Base configuration
 ├── config.local.js         # Your API key (gitignored)
-├── cors-proxy.js           # CORS proxy server
-├── package.json            # Dependencies
-└── docs/
-    ├── START.md                # Quick start guide
-    ├── ARCHITECTURE.md         # Technical documentation
-    └── Task Specification...md  # Requirements
+├── cors-proxy.js           # Local dev proxy (optional)
+├── vercel.json             # Vercel configuration
+└── package.json            # Dependencies
 ```
 
 ## Technology Stack
 
 - **Frontend**: HTML5, CSS3, JavaScript (ES6+)
 - **Markdown**: Marked.js
-- **CORS Proxy**: Node.js, Express, http-proxy-middleware
+- **Proxy**: Vercel Serverless Functions (Production), Node.js Express (Local Dev)
 - **Backend API**: WYNI AI Hub Developer API
+- **Deployment**: Vercel
 
 ## Requirements
 
-- Node.js (for CORS proxy)
-- Python 3 (for web server)
 - Modern browser (Chrome, Firefox, Safari, Edge)
 - WYNI Developer API key
+- For deployment: Vercel account (free tier works)
+- For local dev: Node.js or Python 3
 
 ## Security
 
