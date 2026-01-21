@@ -222,6 +222,18 @@ class HomeAffairsAI {
     }
 
     format(text) {
+        // Use marked.js for proper markdown rendering
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                mangle: false
+            });
+            return marked.parse(text);
+        }
+        
+        // Fallback simple formatting
         let html = text
             .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.+?)\*/g, '<em>$1</em>')
@@ -229,7 +241,7 @@ class HomeAffairsAI {
             .replace(/\n/g, '<br>');
 
         if (!html.startsWith('<p>')) html = '<p>' + html + '</p>';
-        html = html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank">$1</a>');
+        html = html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
         return html;
     }
 
