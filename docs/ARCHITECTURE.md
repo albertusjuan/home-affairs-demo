@@ -110,8 +110,39 @@ The Hong Kong Home Affairs AI Assistant is a web-based chatbot that provides inf
 - **Context Passing**: Sends `context_history` with each API request
 - **SSE Handling**: Processes events: `start`, `thinking`, `tool_start`, `answer_chunk`, `sources`, `done`
 - **Domain Filtering**: Only displays citations from allowed domains
+- **System Prompt Configuration**: Instructs AI on response format and citation handling
 
-### 2. CORS Proxy (Node.js)
+### 2. Configuration (config.js)
+
+**File**: `config.js`
+
+**Responsibilities**:
+- Define system prompt for AI behavior
+- Configure allowed domains for citation filtering
+- Set API endpoints and storage keys
+
+**System Prompt Configuration**:
+
+The system prompt is prepended to the first user message to instruct the AI on how to respond:
+
+```javascript
+SYSTEM_PROMPT: `You are the Hong Kong Home Affairs AI Assistant. Your knowledge is strictly limited to the official websites of the Home Affairs Department (had.gov.hk) and the Home and Youth Affairs Bureau (hyab.gov.hk). When answering, search only these domains using the context of 'home affair Hong Kong'. Provide concise answers and include direct links to the relevant pages as citations.
+
+IMPORTANT: Do not use internal citation formats like [[cite:web:...]] in your responses. Always provide clean, direct hyperlinks in standard markdown format [text](url) instead. Users should see only clean text and clickable links, not internal citation markers.`
+```
+
+**Key Directives**:
+1. **Source Restriction**: Only search official government domains
+2. **Search Context**: Use "home affair Hong Kong" for better results
+3. **Citation Format**: Use clean markdown links, not internal `[[cite:web:...]]` format
+4. **User Experience**: Provide clean, readable responses without internal system markers
+
+**Why This Matters**:
+- The WYNI AI Hub uses internal citation formats (`[[cite:web:...]]`) for its own rendering
+- Home Affairs users should see clean, standard hyperlinks
+- This prevents confusion and improves readability
+
+### 3. CORS Proxy (Node.js)
 
 **File**: `cors-proxy.js`
 
@@ -133,7 +164,7 @@ The Hong Kong Home Affairs AI Assistant is a web-based chatbot that provides inf
 'Access-Control-Allow-Origin': '*'
 ```
 
-### 3. WYNI AI Hub Backend
+### 4. WYNI AI Hub Backend
 
 **Endpoint**: `POST /api/v1/developer/agent/query/stream`
 
