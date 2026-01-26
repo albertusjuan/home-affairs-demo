@@ -5,10 +5,18 @@ class HomeAffairsAI {
         this.apiKey = null;
         this.conversationHistory = [];
         this.isFirstMessage = true;
+        this.supabase = null;
+        this.currentUser = null;
         this.init();
     }
 
     async init() {
+        // Initialize Supabase client if configured
+        await this.initSupabase();
+
+        // Check authentication
+        await this.checkAuth();
+
         // Load API key from config.local.js or localStorage
         if (window.LOCAL_CONFIG) {
             this.apiKey = window.LOCAL_CONFIG.API_KEY;
@@ -23,6 +31,88 @@ class HomeAffairsAI {
         }
 
         this.attachEvents();
+    }
+
+    async initSupabase() {
+        if (window.SUPABASE_CONFIG) {
+            const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.SUPABASE_CONFIG;
+            
+            if (SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('your-project')) {
+                try {
+                    this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    console.log('✓ Supabase client initialized');
+                } catch (error) {
+                    console.warn('Supabase initialization failed:', error);
+                }
+            }
+        }
+    }
+
+    async checkAuth() {
+        if (!this.supabase) {
+            console.log('ℹ Authentication disabled (Supabase not configured)');
+            return;
+        }
+
+        try {
+            const { data: { session } } = await this.supabase.auth.getSession();
+            
+            if (!session) {
+                console.log('⚠ No active session, redirecting to login');
+                window.location.href = 'auth.html';
+                return;
+            }
+
+            this.currentUser = session.user;
+            console.log('✓ Authenticated as:', this.currentUser.email);
+
+            // Add user info to header
+            this.displayUserInfo();
+
+        } catch (error) {
+            console.error('Auth check failed:', error);
+        }
+    }
+
+    displayUserInfo() {
+        if (!this.currentUser) return;
+
+        const headerRight = document.querySelector('.header-right');
+        if (!headerRight) {
+            // Create header-right if it doesn't exist
+            const headerContent = document.querySelector('.header-content');
+            const headerRightDiv = document.createElement('div');
+            headerRightDiv.className = 'header-right';
+            headerRightDiv.innerHTML = `
+                <div class="user-info">
+                    <span class="user-email">${this.currentUser.email}</span>
+                    <button id="logoutButton" class="btn-logout">Logout</button>
+                </div>
+            `;
+            headerContent.appendChild(headerRightDiv);
+
+            // Add logout event
+            document.getElementById('logoutButton')?.addEventListener('click', () => this.handleLogout());
+        }
+    }
+
+    async handleLogout() {
+        if (!this.supabase) return;
+
+        try {
+            await this.supabase.auth.signOut();
+            console.log('✓ Logged out successfully');
+            
+            // Clear local data
+            sessionStorage.clear();
+            localStorage.removeItem('remember_user');
+            
+            // Redirect to login
+            window.location.href = 'auth.html';
+        } catch (error) {
+            console.error('Logout error:', error);
+            alert('Failed to logout. Please try again.');
+        }
     }
 
     async showChat() {

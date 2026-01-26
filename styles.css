@@ -119,6 +119,40 @@ body {
     font-weight: 500;
 }
 
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.user-email {
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.btn-logout {
+    background: rgba(230, 0, 18, 0.9);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.813rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-logout:hover {
+    background: #c70010;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(230, 0, 18, 0.3);
+}
+
 /* Settings Panel */
 .settings-panel {
     flex: 1;
